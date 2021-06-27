@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <style>
+        *{
+            pointer-events: none;
+        }
+        div{
+            pointer-events: all;
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            width: 100px;
+            height: 100px;
+            background-color: #33333300;
+            border-radius: 50%;
+        }
+        body{
+            position: relative;
+        }
+    </style>
+    <div id="hitbox"></div>
+    <canvas id="canvas"></canvas>
+    <script src="./renderer.js"></script>
+</body>
+
+</html>

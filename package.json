@@ -1,0 +1,27 @@
+{
+    "name": "electron-fish",
+    "version": "1.0.0",
+    "description": "a cute fish",
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "debug": "electron --inspect=5858 .",
+        "pack": "electron-builder --dir",
+        "dist": "electron-builder"
+    },
+    "author": "Aidan Blum Levine",
+    "license": "ISC",
+    "devDependencies": {
+        "electron": "^13.1.4"
+    },
+    "dependencies": {
+        "electron-transparency-mouse-fix": "^1.0.0-rc.1"
+    },
+    "build": {
+        "appId": "fun.creature",
+        "mac": {
+            "category": "fun.creature.amazing.app"
+        }
+    },
+    "postinstall": "electron-builder install-app-deps"
+}
