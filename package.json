@@ -15,6 +15,7 @@
         "electron": "^13.1.4"
     },
     "dependencies": {
+        "@flatten-js/core": "^1.2.24",
         "electron-transparency-mouse-fix": "^1.0.0-rc.1"
     },
     "build": {

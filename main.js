@@ -27,8 +27,11 @@ function createWindow() {
     app.dock.show()
 
     interval = setInterval(() => {
+        var mousepos = screen.getCursorScreenPoint()
+        mousepos.x -= 8;
+        mousepos.y -= 36;
         if(open)
-            win.webContents.send('mouse', screen.getCursorScreenPoint());
+            win.webContents.send('mouse', mousepos);
     }, 33);
 }
 
