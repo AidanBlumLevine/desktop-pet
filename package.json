@@ -1,22 +1,25 @@
 {
-    "name": "electron-fish",
+    "name": "narwhal",
     "version": "1.0.0",
-    "description": "a cute fish",
+    "description": "a cute narwhal",
     "main": "main.js",
     "scripts": {
         "start": "electron .",
         "debug": "electron --inspect=5858 .",
         "pack": "electron-builder --dir",
-        "dist": "electron-builder"
+        "dist": "electron-builder --mac --win",
+        "postinstall": "electron-builder install-app-deps"
     },
     "author": "Aidan Blum Levine",
     "license": "ISC",
     "devDependencies": {
-        "electron": "^13.1.4"
+        "electron": "^13.1.4",
+        "electron-builder": "^22.11.7"
     },
     "dependencies": {
         "@flatten-js/core": "^1.2.24",
-        "electron-transparency-mouse-fix": "^1.0.0-rc.1"
+        "electron-transparency-mouse-fix": "^1.0.0-rc.1",
+        "robotjs": "^0.6.0"
     },
     "build": {
         "appId": "fun.creature",

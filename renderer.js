@@ -29,6 +29,22 @@ electron.ipcRenderer.on('mouse', function (event, data) {
     mouse.y = data.y
 })
 
+var robot = require("robotjs");
+
+// // Speed up the mouse.
+robot.setMouseDelay(1);
+
+// var twoPI = Math.PI * 2.0;
+// var screenSize = robot.getScreenSize();
+// var height = (screenSize.height / 2) - 10;
+// var width = screenSize.width;
+
+// for (var x = 0; x < width; x++)
+// {
+//     y = height * Math.sin((twoPI * x) / width) + height;
+//     robot.moveMouse(x, y);
+// }
+
 var objects = []
 
 function update() {
@@ -47,7 +63,7 @@ window.requestAnimationFrame(update)
 class Narwal {
     constructor(x, y) {
         this.pos = new Point(x, y)
-        this.dir = new Vector(-1, -1).normalize()
+        this.dir = new Vector(1, 1).normalize()
         this.tailMid = this.dir.multiply(-43)
         this.tailEnd = this.dir.multiply(-50)
         this.speed = 1
@@ -55,10 +71,12 @@ class Narwal {
         this.leftShift = 0
         this.reentry = 0
         this.animation = 0
-
+        this.anger = 0
+        this.gotMouse = false
         this.hitbox = document.getElementById('hitbox')
         this.hitbox.onclick = () => {
             this.speed = 15
+            this.anger += 700
         }
         // this.hitbox.onmouseover = () => fishes[0].moving = false
         // this.hitbox.onmouseleave = () => fishes[0].moving = true
@@ -66,6 +84,14 @@ class Narwal {
 
     update(delta) {
         delta *= Math.max(1, Math.min(this.speed, 2))
+
+        this.anger = Math.min(2500, Math.max(this.anger - delta / 7, 0))
+        if (this.anger == 0)
+            this.gotMouse = false
+        if (this.anger > 2400)
+            this.gotMouse = true
+        if (this.gotMouse)
+            robot.moveMouse(this.pos.translate(this.dir.multiply(35)).x + 8, this.pos.translate(this.dir.multiply(35)).y + 36);
 
         if (!this.hunting)
             this.speed -= Math.max(0, this.speed - .95) * delta / 1000
@@ -85,12 +111,14 @@ class Narwal {
             if (wallIntersectPoint == undefined)
                 this.reentry = 1000
             else if (this.hunting) {
-                if(!ball.stuck)
-                this.angleVel += angle(this.dir, new Vector(this.pos, ball.pos)) * delta / 450
+                if (!ball.stuck)
+                    this.angleVel += angle(this.dir, new Vector(this.pos, ball.pos)) * delta / 450
             } else {
-                var mouseAngle = angle(this.dir, new Vector(this.pos, mouse))
-                var mouseWariness = Math.min(500, this.pos.distanceTo(mouse)[0]).map(0, 500, 10, 0) / Math.max(1, Math.abs(mouseAngle) * 4)
-                this.angleVel -= Math.sign(mouseAngle) * mouseWariness * mouseWariness / 1000
+                if (!this.gotMouse) {
+                    var mouseAngle = angle(this.dir, new Vector(this.pos, mouse))
+                    var mouseWariness = Math.min(500, this.pos.distanceTo(mouse)[0]).map(0, 500, 10, 0) / Math.max(1, Math.abs(mouseAngle) * 4)
+                    this.angleVel -= Math.sign(mouseAngle) * mouseWariness * mouseWariness / 1000
+                }
 
                 var wallDist = new Vector(this.pos, wallIntersectPoint).length
                 if (wallDist < 150) {
@@ -111,9 +139,7 @@ class Narwal {
 
             if (ball.active) {
                 var ballAngle = Math.abs(angle(this.dir, new Vector(this.pos, ball.pos)))
-                ctx.fillText(ballAngle, 10, 40)
                 if (ballAngle < .5) {
-                    ctx.fillText(Math.random() * this.pos.distanceTo(ball.pos)[0], 10, 10)
                     if (Math.random() * this.pos.distanceTo(ball.pos)[0] < delta) {
                         this.hunting = true
                         this.speed = 1.5
@@ -133,6 +159,7 @@ class Narwal {
                         ball.pos = new Point(1000000, 0);
                     ball.stuck = false
                     this.hunting = false
+                    this.gotMouse = false
                 }
             } else {
                 //re entering
@@ -141,6 +168,7 @@ class Narwal {
                     this.angleVel = 0
                     this.leftShift = 0
                     this.speed = 1
+                    this.anger = 0
                 }
             }
         }
@@ -247,8 +275,10 @@ class Narwal {
             var eyeRight = this.pos.translate(this.dir.rotate90CW().multiply(20)).translate(this.dir.multiply(22))
             circle(eyeLeft.x, eyeLeft.y, 8, "black")
             circle(eyeRight.x, eyeRight.y, 8, "black")
-            circle(eyeLeft.x, eyeLeft.y, 4, "#ddd")
-            circle(eyeRight.x, eyeRight.y, 4, "#ddd")
+            let eyecolors = ['0', '1', '2', '3', '4', '5', '6', '7', '9', 'b', 'c', 'd', 'd', 'd']
+            var eyeV = eyecolors[13 - Math.min(Math.floor(this.anger * 14 / 2500), 13)]
+            circle(eyeLeft.x, eyeLeft.y, 4, "#d" + eyeV + eyeV)
+            circle(eyeRight.x, eyeRight.y, 4, "#d" + eyeV + eyeV)
             ctx.restore()
         }
     }
@@ -316,7 +346,7 @@ class Ball {
         circle(this.pos.x, this.pos.y, this.radius, "black")
         var r = Math.PI / 3
 
-        if(!this.stuck)
+        if (!this.stuck)
             this.rotation += this.rotationSpeed * delta / 1000
 
         circle(this.pos.x, this.pos.y, this.radius - 2, "#fcfa4a", this.rotation + 0 * r - 1, this.rotation + r + 1)

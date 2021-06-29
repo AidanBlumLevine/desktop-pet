@@ -2,6 +2,7 @@ const { app, BrowserWindow, screen } = require('electron')
 const path = require('path')
 
 interval = undefined;
+app.allowRendererProcessReuse = false
 
 function createWindow() {
     const win = new BrowserWindow({
