@@ -16,7 +16,9 @@
 *.vcxproj.user
 *.xcodeproj
 /.idea/
-/dist/
+/dist/*/
+/dist/*.yml
+/dist/*.yaml
 node_modules/
 SHASUMS256.txt
 **/package-lock.json
