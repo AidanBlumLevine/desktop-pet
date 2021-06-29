@@ -9,12 +9,6 @@ const fix = new TransparencyMouseFix({
     fixPointerEvents: 'auto'
 })
 
-
-// hitb = document.getElementById('hitbox')
-// hitb.onclick = () => fishes[0].click()
-// hitb.onmouseover = () => fishes[0].moving = false
-// hitb.onmouseleave = () => fishes[0].moving = true
-
 var [width, height] = win.getSize()
 width -= 10
 height -= 20
@@ -56,33 +50,48 @@ class Narwal {
         this.dir = new Vector(-1, -1).normalize()
         this.tailMid = this.dir.multiply(-43)
         this.tailEnd = this.dir.multiply(-50)
+        this.speed = 1
         this.angleVel = 0
         this.leftShift = 0
         this.reentry = 0
         this.animation = 0
+
+        this.hitbox = document.getElementById('hitbox')
+        this.hitbox.onclick = () => {
+            this.speed = 15
+        }
+        // this.hitbox.onmouseover = () => fishes[0].moving = false
+        // this.hitbox.onmouseleave = () => fishes[0].moving = true
     }
 
-    update(delta, ctx) {
+    update(delta) {
+        delta *= Math.max(1, Math.min(this.speed, 2))
+
+        if (!this.hunting)
+            this.speed -= Math.max(0, this.speed - .95) * delta / 1000
+
         this.animation += delta
 
+        this.drawHorn(true)
+        this.drawHorn()
         this.draw(true)
         this.draw()
 
         var angleChange = 0
         if (this.reentry == 0) {
             angleChange = this.angleVel
-
-            var mouseAngle = angle(this.dir, new Vector(this.pos, mouse))
-            var mouseWariness = Math.min(500, this.pos.distanceTo(mouse)[0]).map(0, 500, 10, 0) / Math.max(1, Math.abs(mouseAngle) * 4)
-            // circle(ctx, this.pos.x, this.pos.y, mouseWariness * 2, "cyan")
-            this.angleVel -= Math.sign(mouseAngle) * mouseWariness * mouseWariness / 1000
-
             var wallIntersectPoint = wallRaycast(new Ray(this.pos, this.dir.rotate90CCW()))
 
-            var wallDist = 99999
             if (wallIntersectPoint == undefined)
                 this.reentry = 1000
-            else {
+            else if (this.hunting) {
+                if(!ball.stuck)
+                this.angleVel += angle(this.dir, new Vector(this.pos, ball.pos)) * delta / 450
+            } else {
+                var mouseAngle = angle(this.dir, new Vector(this.pos, mouse))
+                var mouseWariness = Math.min(500, this.pos.distanceTo(mouse)[0]).map(0, 500, 10, 0) / Math.max(1, Math.abs(mouseAngle) * 4)
+                this.angleVel -= Math.sign(mouseAngle) * mouseWariness * mouseWariness / 1000
+
                 var wallDist = new Vector(this.pos, wallIntersectPoint).length
                 if (wallDist < 150) {
                     var leftRightCastPoint = new Point(this.pos.x * .1 + wallIntersectPoint.x * .9, this.pos.y * .1 + wallIntersectPoint.y * .9)
@@ -99,6 +108,18 @@ class Narwal {
 
             this.angleVel *= (1 - delta / 1000 * 1.5)
             this.leftShift -= Math.sign(this.leftShift) * delta
+
+            if (ball.active) {
+                var ballAngle = Math.abs(angle(this.dir, new Vector(this.pos, ball.pos)))
+                ctx.fillText(ballAngle, 10, 40)
+                if (ballAngle < .5) {
+                    ctx.fillText(Math.random() * this.pos.distanceTo(ball.pos)[0], 10, 10)
+                    if (Math.random() * this.pos.distanceTo(ball.pos)[0] < delta) {
+                        this.hunting = true
+                        this.speed = 1.5
+                    }
+                }
+            }
         } else {
             if (this.reentry > 0) {
                 //still leaving
@@ -108,6 +129,10 @@ class Narwal {
                     this.newSpawn = new Point(width / 2, height / 2).translate(this.dir.multiply(-Math.max(width, height) - 100))
                     this.pos = this.newSpawn
                     this.reentryDist = new Vector(this.newSpawn, wallRaycast(new Ray(this.pos, this.dir.rotate90CCW()))).length
+                    if (ball.stuck)
+                        ball.pos = new Point(1000000, 0);
+                    ball.stuck = false
+                    this.hunting = false
                 }
             } else {
                 //re entering
@@ -115,6 +140,7 @@ class Narwal {
                     this.reentry = 0
                     this.angleVel = 0
                     this.leftShift = 0
+                    this.speed = 1
                 }
             }
         }
@@ -127,24 +153,38 @@ class Narwal {
         var endDelta = angle(this.tailEnd, this.dir.invert())
         this.tailMid = this.tailMid.rotate(midDelta * delta / 125 * midDelta * Math.sign(midDelta))
         this.tailEnd = this.tailEnd.rotate(endDelta * delta / 150 * endDelta * Math.sign(endDelta))
+
+        this.hitbox.style.top = (this.pos.y - 50) + "px"
+        this.hitbox.style.left = (this.pos.x - 50) + "px"
     }
 
     draw(outline = false) {
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 4
         ctx.strokeStyle = "#030303"
-
-        var hornLeft = this.pos.translate(this.dir.rotate90CCW().multiply(12))
-        var hornPoint = this.pos.translate(this.dir.multiply(50))
-        var hornRight = this.pos.translate(this.dir.rotate90CW().multiply(12))
-        var hornLeftHalf = new Point((hornLeft.x + hornPoint.x * 4) / 5, (hornLeft.y + hornPoint.y * 4) / 5);
-        var hornRightHalf = new Point((hornRight.x + hornPoint.x * 4) / 5, (hornRight.y + hornPoint.y * 4) / 5);
-        ctx.fillStyle = "#dcba82"
+        ctx.fillStyle = "#6FB2C3"
+        ctx.fillStyle = "#7EBAC9"
+        var finWiggle = Math.sin(this.animation / 800) / 6
+        var finWiggle2 = Math.sin(this.animation / 700 + 2) / 6
+        var finLeftBase = this.pos.translate(this.dir.multiply(26).rotate(-1.8))
+        var finRightBase = this.pos.translate(this.dir.multiply(26).rotate(1.8))
+        var finLeftOutCPoint = finLeftBase.translate(this.dir.multiply(12).rotate(-1.8 + finWiggle))
+        var finRightOutCPoint = finRightBase.translate(this.dir.multiply(12).rotate(1.8 + finWiggle2))
+        var finLeftPoint = finLeftBase.translate(this.dir.multiply(25).rotate(-2.8 + finWiggle))
+        var finRightPoint = finRightBase.translate(this.dir.multiply(25).rotate(2.8 + finWiggle2))
+        var finLeftInCPoint = finLeftBase.translate(this.dir.multiply(16).rotate(-3.8 + finWiggle))
+        var finRightInCPoint = finRightBase.translate(this.dir.multiply(16).rotate(3.8 + finWiggle2))
         ctx.beginPath()
-        ctx.moveTo(hornLeft.x, hornLeft.y)
-
-        ctx.lineTo(hornLeftHalf.x, hornLeftHalf.y)
-        ctx.quadraticCurveTo(hornPoint.x, hornPoint.y, hornRightHalf.x, hornRightHalf.y)
-        ctx.lineTo(hornRight.x, hornRight.y)
+        ctx.moveTo(finLeftBase.x, finLeftBase.y)
+        ctx.quadraticCurveTo(finLeftOutCPoint.x, finLeftOutCPoint.y, finLeftPoint.x, finLeftPoint.y)
+        ctx.quadraticCurveTo(finLeftInCPoint.x, finLeftInCPoint.y, finLeftBase.x, finLeftBase.y)
+        if (outline)
+            ctx.stroke()
+        else
+            ctx.fill()
+        ctx.beginPath()
+        ctx.moveTo(finRightBase.x, finRightBase.y)
+        ctx.quadraticCurveTo(finRightOutCPoint.x, finRightOutCPoint.y, finRightPoint.x, finRightPoint.y)
+        ctx.quadraticCurveTo(finRightInCPoint.x, finRightInCPoint.y, finRightBase.x, finRightBase.y)
         if (outline)
             ctx.stroke()
         else
@@ -154,11 +194,12 @@ class Narwal {
         ctx.fillStyle = "#9ecbd6"
         ctx.beginPath()
 
-        var wiggle = Math.sin(this.animation / 300) / 4
+        var endAngle = angle(this.tailEnd, this.dir.invert())
+        var wiggle = Math.sin(this.animation / 300) / 6
+        wiggle /= Math.max(1, endAngle * 4)
         var animatedMid = this.tailMid.rotate(wiggle / 2)
         var animatedEnd = this.tailEnd.rotate(wiggle)
 
-        var endAngle = angle(this.tailEnd, this.dir.invert())
         var leftTailBase = this.pos.translate(this.dir.multiply(-30).rotate(-.85 - Math.max(endAngle, 0)))
         var leftTailBaseNormal = leftTailBase.translate(this.dir.multiply(15).rotate(-.85 - Math.max(endAngle, 0)).rotate90CW())
         var leftTailEnd = this.pos.translate(animatedEnd.add(animatedEnd.normalize().rotate90CW().multiply(8)))
@@ -172,7 +213,7 @@ class Narwal {
         var tailAnimatedLeft = animatedEnd.rotate90CW().normalize().rotate(wiggle / 2)
         var tailAnimatedRight = tailAnimatedLeft.invert()
 
-        var tailCenter = this.pos.translate(animatedEnd.multiply(1.17));
+        var tailCenter = this.pos.translate(animatedEnd.multiply(1.17))
         var tailTipLeft = this.pos.translate(animatedEnd.multiply(1.27).add(tailAnimatedLeft.multiply(25)))
         var tailTipRight = this.pos.translate(animatedEnd.multiply(1.27).add(tailAnimatedRight.multiply(25)))
         var tailTipLeftLowerC = this.pos.translate(animatedEnd.multiply(1).add(tailAnimatedLeft.multiply(20)))
@@ -204,15 +245,89 @@ class Narwal {
             ctx.clip()
             var eyeLeft = this.pos.translate(this.dir.rotate90CCW().multiply(20)).translate(this.dir.multiply(22))
             var eyeRight = this.pos.translate(this.dir.rotate90CW().multiply(20)).translate(this.dir.multiply(22))
-            circle(ctx, eyeLeft.x, eyeLeft.y, 8, "black")
-            circle(ctx, eyeRight.x, eyeRight.y, 8, "black")
-            circle(ctx, eyeLeft.x, eyeLeft.y, 4, "white")
-            circle(ctx, eyeRight.x, eyeRight.y, 4, "white")
+            circle(eyeLeft.x, eyeLeft.y, 8, "black")
+            circle(eyeRight.x, eyeRight.y, 8, "black")
+            circle(eyeLeft.x, eyeLeft.y, 4, "#ddd")
+            circle(eyeRight.x, eyeRight.y, 4, "#ddd")
             ctx.restore()
         }
     }
+
+    drawHorn(outline = false) {
+        ctx.lineWidth = 4
+        ctx.strokeStyle = "#030303"
+
+        var hornLeft = this.pos.translate(this.dir.rotate90CCW().multiply(12))
+        var hornPoint = this.pos.translate(this.dir.multiply(50))
+        var hornRight = this.pos.translate(this.dir.rotate90CW().multiply(12))
+        var hornLeftHalf = new Point((hornLeft.x + hornPoint.x * 4) / 5, (hornLeft.y + hornPoint.y * 4) / 5)
+        var hornRightHalf = new Point((hornRight.x + hornPoint.x * 4) / 5, (hornRight.y + hornPoint.y * 4) / 5)
+        ctx.fillStyle = "#dcba82"
+        ctx.beginPath()
+        ctx.moveTo(hornLeft.x, hornLeft.y)
+        ctx.lineTo(hornLeftHalf.x, hornLeftHalf.y)
+        ctx.quadraticCurveTo(hornPoint.x, hornPoint.y, hornRightHalf.x, hornRightHalf.y)
+        ctx.lineTo(hornRight.x, hornRight.y)
+        if (outline)
+            ctx.stroke()
+        else
+            ctx.fill()
+    }
 }
 
+class Ball {
+    constructor() {
+        this.xvel = Math.random() > .5 ? 1 : -1
+        this.yvel = 0
+        this.pos = new Point(width / 2 - width * this.xvel, Math.random() * 200)
+        this.radius = 30
+        this.active = true
+        this.stuck = false
+        this.rotation = 0
+        this.rotationSpeed = Math.random() * 8 - 4
+    }
+
+    update(delta) {
+        if (this.stuck) {
+            this.pos = narwhal.pos.translate(narwhal.dir.multiply(this.stuckDist).rotate(this.stuckAngle))
+        } else if (this.pos.distanceTo(narwhal.pos.translate(narwhal.dir.multiply(35)))[0] < this.radius) {
+            narwhal.hunting = true
+            narwhal.speed = 1.5
+            this.stuck = true
+            this.stuckDist = this.pos.distanceTo(narwhal.pos)[0]
+            this.stuckAngle = narwhal.dir.angleTo(new Vector(narwhal.pos, this.pos))
+        } else {
+            this.yvel += delta / 15
+            var ydelta = this.yvel * delta / 1000
+            if (this.pos.y + this.radius + ydelta > height) {
+                this.pos.y = height - this.radius
+                this.yvel *= -(Math.random() / 3 + .7)
+            }
+            else
+                this.pos = this.pos.translate(new Vector(this.xvel * delta / 15, ydelta))
+
+            this.active = true
+            if (this.xvel > 0 ? this.pos.x : width - this.pos.x > width + this.radius)
+                this.active = false
+            if (this.xvel > 0 ? this.pos.x : width - this.pos.x < this.radius)
+                this.active = false
+        }
+
+        circle(this.pos.x, this.pos.y, this.radius, "black")
+        var r = Math.PI / 3
+
+        if(!this.stuck)
+            this.rotation += this.rotationSpeed * delta / 1000
+
+        circle(this.pos.x, this.pos.y, this.radius - 2, "#fcfa4a", this.rotation + 0 * r - 1, this.rotation + r + 1)
+        circle(this.pos.x, this.pos.y, this.radius - 2, "#fdb44f", this.rotation + 1 * r, this.rotation + 2 * r + 1)
+        circle(this.pos.x, this.pos.y, this.radius - 2, "#fe79a9", this.rotation + 2 * r, this.rotation + 3 * r + 1)
+        circle(this.pos.x, this.pos.y, this.radius - 2, "#c788ff", this.rotation + 3 * r, this.rotation + 4 * r + 1)
+        circle(this.pos.x, this.pos.y, this.radius - 2, "#8ec9ff", this.rotation + 4 * r, this.rotation + 5 * r + 1)
+        circle(this.pos.x, this.pos.y, this.radius - 2, "#77ff86", this.rotation + 5 * r, this.rotation + 0)
+        circle(this.pos.x, this.pos.y, this.radius / 3.5, "white")
+    }
+}
 
 function wallRaycast(ray) {
     var hit
@@ -236,81 +351,20 @@ Number.prototype.map = function (in_min, in_max, out_min, out_max) {
     return (this - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 }
 
-class Fish {
-    constructor(x, y) {
-        this.x = x
-        this.y = y
-        this.vx = 1
-        this.vy = 1
-        this.radius = 40
-        this.color = 'green'
-        this.moving = true
-    }
+ball = new Ball()
+narwhal = new Narwal(400, 200)
+objects.push(narwhal)
+objects.push(ball)
+setInterval(() => {
+    ball = new Ball()
+    objects[1] = ball
+}, 60000 + Math.random() * 20000)
 
-    click() {
-        this.color = '#' + Math.floor(Math.random() * 16777215).toString(16)
-    }
-
-    update(delta, ctx) {
-        ctx.beginPath()
-        ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI, false)
-        ctx.fillStyle = this.color
-        ctx.fill()
-
-        ctx.beginPath()
-        ctx.moveTo(this.x, this.y)
-        var l = 30
-        ctx.quadraticCurveTo(this.x - this.vx * l, this.y - this.vy * l, this.x - this.vx * l * .7, this.y - this.vy * l * 2.2)
-        ctx.quadraticCurveTo(this.x - this.vx * l * 1.5, this.y - this.vy * l * 1.5, this.x - this.vx * l * 2.2, this.y - this.vy * l * .7)
-        ctx.quadraticCurveTo(this.x - this.vx * l, this.y - this.vy * l, this.x, this.y)
-        ctx.fill()
-
-        ctx.fillStyle = "black"
-        ctx.fillRect(this.x - 8, this.y - 15, 5, 20)
-        ctx.fillRect(this.x + 8, this.y - 15, -5, 20)
-
-
-        ctx.beginPath()
-        ctx.arc(this.x, this.y + 10, this.radius * .6, 0, Math.PI, false)
-        ctx.fill()
-
-        //if(Math.pow(mouse.x - this.x, 2) + Math.pow(mouse.y - this.y, 2) < this.radius * this.radius)
-        if (!this.moving)
-            return
-
-        this.x += this.vx * delta / 5
-        this.y += this.vy * delta / 5
-
-        //=====TEMP======
-        // hitb.style.top = (this.y - 50) + "px"
-        // hitb.style.left = (this.x - 50) + "px"
-
-        if (this.x < this.radius)
-            this.vx *= -1
-        if (this.x > width - this.radius)
-            this.vx *= -1
-        if (this.y < this.radius)
-            this.vy *= -1
-        if (this.y > height - this.radius)
-            this.vy *= -1
-    }
-}
-
-//objects.push(new Fish(100, 100))
-objects.push(new Narwal(400, 200))
-
-
-function wallDist(p) {
-    dist = 100000
-    for (e of wall.edges) {
-        dist = Math.min(dist, e.shape.distanceTo(p)[0])
-    }
-    return dist
-}
-
-function circle(ctx, x, y, radius, color) {
+function circle(x, y, radius, color, from = 0, to = Math.PI * 2) {
     ctx.beginPath()
-    ctx.arc(x, y, radius, 0, 2 * Math.PI, false)
+    ctx.moveTo(x, y)
+    ctx.arc(x, y, radius, from, to, false)
     ctx.fillStyle = color
     ctx.fill()
 }
+
