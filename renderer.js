@@ -86,12 +86,12 @@ class Narwal {
         delta *= Math.max(1, Math.min(this.speed, 2))
 
         this.anger = Math.min(2500, Math.max(this.anger - delta / 7, 0))
-        if (this.anger == 0)
+        if (this.anger < 1000)
             this.gotMouse = false
         if (this.anger > 2400)
             this.gotMouse = true
         if (this.gotMouse)
-            robot.moveMouse(this.pos.translate(this.dir.multiply(35)).x + 8, this.pos.translate(this.dir.multiply(35)).y + 36);
+            robot.moveMouse(this.pos.translate(this.dir.multiply(35)).x + (process.platform == "darwin" ? 8 : 0), this.pos.translate(this.dir.multiply(35)).y + (process.platform == "darwin" ? 36 : 0));
 
         if (!this.hunting)
             this.speed -= Math.max(0, this.speed - .95) * delta / 1000
@@ -140,7 +140,7 @@ class Narwal {
             if (ball.active) {
                 var ballAngle = Math.abs(angle(this.dir, new Vector(this.pos, ball.pos)))
                 if (ballAngle < .5) {
-                    if (Math.random() * this.pos.distanceTo(ball.pos)[0] < delta) {
+                    if (Math.random() * this.pos.distanceTo(ball.pos)[0] < delta + 20) {
                         this.hunting = true
                         this.speed = 1.5
                     }

@@ -20,18 +20,22 @@ function createWindow() {
     })
     win.loadFile('index.html')
 
-    win.setIgnoreMouseEvents(true)
+    if (process.platform == "darwin")
+        win.setIgnoreMouseEvents(false)
+    else
+        win.setIgnoreMouseEvents(true, { forward: true })
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-    win.setAlwaysOnTop(true, "floating", 1);
+    win.setAlwaysOnTop(true, process.platform == "darwin" ? "floating" : "normal", 1);
     win.setFullScreenable(false);
     win.maximize()
-    app.dock.show()
+
+    if (process.platform == "darwin") app.dock.show()
 
     interval = setInterval(() => {
         var mousepos = screen.getCursorScreenPoint()
-        mousepos.x -= 8;
-        mousepos.y -= 36;
-        if(open)
+        if (process.platform == "darwin") mousepos.x -= 8;
+        if (process.platform == "darwin") mousepos.y -= 36;
+        if (open)
             win.webContents.send('mouse', mousepos);
     }, 33);
 }
