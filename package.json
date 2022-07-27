@@ -30,6 +30,11 @@
         "appId": "fun.creature",
         "mac": {
             "category": "fun.creature.amazing.app"
+        },
+        "win": {
+            "target": [
+                "portable"
+            ]
         }
     },
     "postinstall": "electron-builder install-app-deps"
