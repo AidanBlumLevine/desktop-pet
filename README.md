@@ -1,5 +1,7 @@
 # desktop narwhal pet
 
+A narwhal that lives on top of your screen and stops by to play every once and a while!
+
 ![preview gif](https://github.com/AidanBlumLevine/desktop-pet/blob/master/thumbnail_improved2.gif)
 
 Download builds here:
