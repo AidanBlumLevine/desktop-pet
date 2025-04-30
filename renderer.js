@@ -72,7 +72,7 @@ class Narwal {
         this.reentry = 0
         this.animation = 0
         this.anger = 0
-        this.rainbowHue = 0  // Add a property to track the current hue (0-360)
+        this.rainbowOffset = 0  // Track the offset for the moving rainbow pattern
         this.gotMouse = false
         this.hitbox = document.getElementById('hitbox')
         this.hitbox.onclick = () => {
@@ -87,7 +87,7 @@ class Narwal {
         delta *= Math.max(1, Math.min(this.speed, 2))
 
         this.anger = Math.min(2500, Math.max(this.anger - delta / 7, 0))
-        this.rainbowHue = (this.rainbowHue + delta / 50) % 360  // Increment hue and wrap around at 360
+        this.rainbowOffset = (this.rainbowOffset + delta / 50) % 360  // Increment offset for moving rainbow pattern
         if (this.anger < 1000)
             this.gotMouse = false
         if (this.anger > 2400)
@@ -221,7 +221,18 @@ class Narwal {
             ctx.fill()
 
         ctx.save()
-        ctx.fillStyle = `hsl(${this.rainbowHue}, 70%, 70%)`  // Use HSL color based on current hue
+        const gradientStart = this.pos.translate(this.dir.multiply(-50))
+        const gradientEnd = this.pos.translate(this.dir.multiply(50))
+        const gradient = ctx.createLinearGradient(gradientStart.x, gradientStart.y, gradientEnd.x, gradientEnd.y)
+        
+        // Add rainbow color stops with offset based on animation
+        const numStops = 6
+        for (let i = 0; i < numStops; i++) {
+            const hue = (this.rainbowOffset + i * (360 / numStops)) % 360
+            gradient.addColorStop(i / numStops, `hsl(${hue}, 70%, 70%)`)
+        }
+        
+        ctx.fillStyle = gradient
         ctx.beginPath()
 
         var endAngle = angle(this.tailEnd, this.dir.invert())
